@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário de Vistoria de Corredores</title>
+    <!-- Inclui Tailwind CSS para estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inclui html2pdf.js para geração de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* Define a fonte Inter para todo o corpo do documento */
+        html, body {
+            margin: 0; /* Remove margens padrão */
+            padding: 0; /* Remove paddings padrão */
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Cor de fundo suave */
+        }
+        /* Estilos para o modal personalizado */
+        .modal {
+            display: none; /* Oculto por padrão */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* Fundo semi-transparente */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Estilos para o cabeçalho colapsável */
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: #e0f2f7; /* Um pouco mais escuro que o fundo da seção */
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .collapsible-header:hover {
+            background-color: #ccecf4;
+        }
+        .collapsible-content {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease-out;
+        }
+        .collapsible-content.expanded {
+            max-height: 9999px; /* Valor grande o suficiente para expandir totalmente no PDF */
+            transition: max-height 0.5s ease-in;
+        }
+        .arrow-icon {
+            transition: transform 0.3s ease;
+        }
+        .collapsible-content.expanded + .collapsible-header .arrow-icon {
+            transform: rotate(90deg); /* Gira a seta quando expandido */
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl mt-8 mb-8" id="formContent">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Formulário de Vistoria de Corredores</h1>
+
+        <form id="inspectionForm" class="space-y-6">
+            <!-- GRUPO 1: Local de Vistoria -->
+            <div class="p-5 bg-blue-50 rounded-lg border border-blue-200">
+                <h2 class="text-xl font-semibold text-blue-700 mb-4">GRUPO 1: Local de Vistoria</h2>
+                
+                <!-- Seleção de BLOCO -->
+                <div>
+                    <label for="bloco" class="block text-sm font-medium text-gray-700 mb-2">BLOCO:</label>
+                    <select id="bloco" name="bloco" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="">Selecione um Bloco</option>
+                        <option value="Bloco 1">Bloco 1</option>
+                        <option value="Bloco 2">Bloco 2</option>
+                        <option value="Bloco 3">Bloco 3</option>
+                        <option value="Bloco 4">Bloco 4</option>
+                        <option value="Bloco 5">Bloco 5</option>
+                        <option value="Bloco 6">Bloco 6</option>
+                        <option value="Bloco 7">Bloco 7</option>
+                    </select>
+                </div>
+
+                <!-- Seleção de PAVIMENTO -->
+                <div class="mt-4">
+                    <label for="pavimento" class="block text-sm font-medium text-gray-700 mb-2">PAVIMENTO:</label>
+                    <select id="pavimento" name="pavimento" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="">Selecione um Pavimento</option>
+                        <option value="Térreo">Térreo</option>
+                        <option value="2° Pav">2° Pav</option>
+                        <option value="3° Pav">3° Pav</option>
+                        <option value="4° Pav">4° Pav</option>
+                        <option value="5° Pav">5° Pav</option>
+                        <option value="6° Pav">6° Pav</option>
+                        <option value="7° Pav">7° Pav</option>
+                        <option value="8° Pav">8° Pav</option>
+                        <option value="9° Pav">9° Pav</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Container para as seções de Não Conformidades (repetível) -->
+            <div id="nonConformitySectionsContainer" class="space-y-6">
+                <!-- As seções de não conformidade serão adicionadas aqui via JavaScript -->
+            </div>
+
+            <!-- Botão para adicionar mais não conformidades -->
+            <div class="text-center mt-6">
+                <button type="button" id="addNcSectionBtn" class="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                    Adicionar Nova Não Conformidade
+                </button>
+            </div>
+
+            <!-- Campo de Observação Geral -->
+            <div class="p-5 bg-gray-50 rounded-lg border border-gray-200">
+                <label for="observacaoGeral" class="block text-sm font-medium text-gray-700 mb-2">Observação Geral:</label>
+                <textarea id="observacaoGeral" name="observacaoGeral" rows="4" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 sm:text-sm" placeholder="Digite observações gerais sobre a vistoria aqui..."></textarea>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mt-6">
+                <button type="button" id="exportTextBtn" class="inline-flex justify-center py-2 px-6 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                    Exportar para TXT
+                </button>
+                <button type="button" id="exportPdfBtn" class="inline-flex justify-center py-2 px-6 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out">
+                    Gerar PDF
+                </button>
+                <button type="button" id="clearLocalDataBtn" class="inline-flex justify-center py-2 px-6 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150 ease-in-out">
+                    Limpar Dados Salvos
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal para mensagens e fallback de texto -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="document.getElementById('messageModal').style.display='none'">&times;</span>
+            <p id="modalMessage" class="text-lg font-semibold mb-4"></p>
+            <textarea id="textDataTextarea" class="hidden w-full h-32 border p-2 rounded-md mb-4" readonly></textarea>
+            <button class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md" onclick="document.getElementById('messageModal').style.display='none'">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais
+        let ncCounter = 0; // Contador para IDs únicos das seções de NC
+        const nonConformitySectionsContainer = document.getElementById('nonConformitySectionsContainer');
+        const addNcSectionBtn = document.getElementById('addNcSectionBtn');
+        const exportTextBtn = document.getElementById('exportTextBtn'); 
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
+        const clearLocalDataBtn = document.getElementById('clearLocalDataBtn');
+        const inspectionForm = document.getElementById('inspectionForm');
+        const observacaoGeralInput = document.getElementById('observacaoGeral');
+
+        // Modal elements
+        const messageModal = document.getElementById('messageModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const textDataTextarea = document.getElementById('textDataTextarea'); 
+
+        // --- Funções Auxiliares ---
+
+        /**
+         * Exibe uma mensagem em um modal personalizado.
+         * @param {string} message - A mensagem a ser exibida.
+         * @param {string} textContent - Opcional: Conteúdo de texto para exibir no textarea.
+         */
+        function showMessage(message, textContent = null) {
+            modalMessage.textContent = message;
+            if (textContent) {
+                textDataTextarea.value = textContent;
+                textDataTextarea.classList.remove('hidden');
+            } else {
+                textDataTextarea.classList.add('hidden');
+            }
+            messageModal.style.display = 'flex'; // Usa flex para centralizar
+        }
+
+        /**
+         * Gera o HTML para uma nova seção de não conformidade.
+         * @param {number} index - O índice para IDs e nomes únicos.
+         * @param {boolean} isRemovable - Se a seção pode ser removida.
+         * @param {Object} [data={}] - Dados para pré-preencher a seção (para carregamento do LocalStorage).
+         * @returns {string} O HTML da seção.
+         */
+        function generateNcSectionHtml(index, isRemovable, data = {}) {
+            const categoriaValue = data.categoria || '';
+            const revestimentosLocalValue = data.revestimentosLocal || '';
+            const revestimentosItemValue = data.revestimentosItem || '';
+            const alvenariaLocalValue = data.alvenariaLocal || '';
+            const alvenariaItemValue = data.alvenariaItem || '';
+            const eletricaLocalValue = data.eletricaLocal || '';
+            const eletricaItemValue = data.eletricaItem || '';
+            const quadrosLocalValue = data.quadrosLocal || '';
+            const quadrosItemValue = data.quadrosItem || '';
+            const pinturaLocalValue = data.pinturaLocal || '';
+            const pinturaItemValue = data.pinturaItem || '';
+            const esquadriasItemValues = Array.isArray(data.esquadriasItem) ? data.esquadriasItem : (data.esquadriasItem ? data.esquadriasItem.split('; ') : []);
+            const observacaoNCValue = data.observacaoNC || '';
+
+            return `
+                <div class="non-conformity-section p-5 bg-green-50 rounded-lg border border-green-200 relative" data-id-suffix="${index}">
+                    <div class="collapsible-header">
+                        <h2 class="text-xl font-semibold text-green-700">GRUPO 2: Registro de Não Conformidades #${index}</h2>
+                        <span class="arrow-icon text-2xl text-green-700">&#9654;</span> <!-- Seta para colapsar/expandir -->
+                    </div>
+                    <div class="collapsible-content">
+                        ${isRemovable ? `<button type="button" class="remove-nc-btn absolute top-2 right-2 text-red-500 hover:text-red-700 font-bold text-xl px-2 py-1 rounded-full bg-red-100 hover:bg-red-200 transition duration-150 ease-in-out">&times;</button>` : ''}
+                        
+                        <!-- Seleção de CATEGORIA -->
+                        <div>
+                            <label for="categoria_${index}" class="block text-sm font-medium text-gray-700 mb-2">CATEGORIA:</label>
+                            <select id="categoria_${index}" name="categoria_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md shadow-sm">
+                                <option value="">Selecione uma Categoria</option>
+                                <option value="Revestimentos" ${categoriaValue === 'Revestimentos' ? 'selected' : ''}>Revestimentos</option>
+                                <option value="Alvenaria" ${categoriaValue === 'Alvenaria' ? 'selected' : ''}>Alvenaria</option>
+                                <option value="Elétrica / Especiais" ${categoriaValue === 'Elétrica / Especiais' ? 'selected' : ''}>Elétrica / Especiais</option>
+                                <option value="Quadros Técnicos" ${categoriaValue === 'Quadros Técnicos' ? 'selected' : ''}>Quadros Técnicos</option>
+                                <option value="Pintura" ${categoriaValue === 'Pintura' ? 'selected' : ''}>Pintura</option>
+                                <option value="Esquadrias" ${categoriaValue === 'Esquadrias' ? 'selected' : ''}>Esquadrias</option>
+                            </select>
+                        </div>
+
+                        <!-- SUBGRUPO 2.1: REVESTIMENTOS -->
+                        <div id="subgrupoRevestimentos_${index}" class="hidden p-5 bg-yellow-50 rounded-lg border border-yellow-200 mt-4">
+                            <h3 class="text-lg font-semibold text-yellow-700 mb-4">REVESTIMENTOS</h3>
+                            <div>
+                                <label for="revestimentosLocal_${index}" class="block text-sm font-medium text-gray-700 mb-2">Local:</label>
+                                <select id="revestimentosLocal_${index}" name="revestimentosLocal_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Local</option>
+                                    <option value="RODAPÉ" ${revestimentosLocalValue === 'RODAPÉ' ? 'selected' : ''}>RODAPÉ</option>
+                                    <option value="PISO" ${revestimentosLocalValue === 'PISO' ? 'selected' : ''}>PISO</option>
+                                    <option value="PAREDE LIXEIRA" ${revestimentosLocalValue === 'PAREDE LIXEIRA' ? 'selected' : ''}>PAREDE LIXEIRA</option>
+                                    <option value="PISO LIXEIRA" ${revestimentosLocalValue === 'PISO LIXEIRA' ? 'selected' : ''}>PISO LIXEIRA</option>
+                                </select>
+                            </div>
+                            <div class="mt-4">
+                                <label for="revestimentosItem_${index}" class="block text-sm font-medium text-gray-700 mb-2">Item Avaliado:</label>
+                                <select id="revestimentosItem_${index}" name="revestimentosItem_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Item</option>
+                                    <option value="Melhorar acabamento" ${revestimentosItemValue === 'Melhorar acabamento' ? 'selected' : ''}>Melhorar acabamento</option>
+                                    <option value="Ausência de peça" ${revestimentosItemValue === 'Ausência de peça' ? 'selected' : ''}>Ausência de peça</option>
+                                    <option value="Peça quebrada" ${revestimentosItemValue === 'Peça quebrada' ? 'selected' : ''}>Peça quebrada</option>
+                                    <option value="Trinca / Lasca" ${revestimentosItemValue === 'Trinca / Lasca' ? 'selected' : ''}>Trinca / Lasca</option>
+                                    <option value="Garrote" ${revestimentosItemValue === 'Garrote' ? 'selected' : ''}>Garrote</option>
+                                    <option value="Rejunte" ${revestimentosItemValue === 'Rejunte' ? 'selected' : ''}>Rejunte</option>
+                                    <option value="Outro" ${revestimentosItemValue === 'Outro' ? 'selected' : ''}>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- SUBGRUPO 2.2: ALVENARIA -->
+                        <div id="subgrupoAlvenaria_${index}" class="hidden p-5 bg-red-50 rounded-lg border border-red-200 mt-4">
+                            <h3 class="text-lg font-semibold text-red-700 mb-4">ALVENARIA</h3>
+                            <div>
+                                <label for="alvenariaLocal_${index}" class="block text-sm font-medium text-gray-700 mb-2">Local:</label>
+                                <select id="alvenariaLocal_${index}" name="alvenariaLocal_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Local</option>
+                                    <option value="TETO" ${alvenariaLocalValue === 'TETO' ? 'selected' : ''}>TETO</option>
+                                    <option value="PAREDE" ${alvenariaLocalValue === 'PAREDE' ? 'selected' : ''}>PAREDE</option>
+                                    <option value="PISO" ${alvenariaLocalValue === 'PISO' ? 'selected' : ''}>PISO</option>
+                                    <option value="REQUADRO" ${alvenariaLocalValue === 'REQUADRO' ? 'selected' : ''}>REQUADRO</option>
+                                    <option value="TETO LIXEIRA" ${alvenariaLocalValue === 'TETO LIXEIRA' ? 'selected' : ''}>TETO LIXEIRA</option>
+                                </select>
+                            </div>
+                            <div class="mt-4">
+                                <label for="alvenariaItem_${index}" class="block text-sm font-medium text-gray-700 mb-2">Item Avaliado:</label>
+                                <select id="alvenariaItem_${index}" name="alvenariaItem_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Item</option>
+                                    <option value="Planicidade" ${alvenariaItemValue === 'Planicidade' ? 'selected' : ''}>Planicidade</option>
+                                    <option value="Esquadro" ${alvenariaItemValue === 'Esquadro' ? 'selected' : ''}>Esquadro</option>
+                                    <option value="Arremate" ${alvenariaItemValue === 'Arremate' ? 'selected' : ''}>Arremate</option>
+                                    <option value="Umidade" ${alvenariaItemValue === 'Umidade' ? 'selected' : ''}>Umidade</option>
+                                    <option value="Buraco" ${alvenariaItemValue === 'Buraco' ? 'selected' : ''}>Buraco</option>
+                                    <option value="Fissura" ${alvenariaItemValue === 'Fissura' ? 'selected' : ''}>Fissura</option>
+                                    <option value="Prumo" ${alvenariaItemValue === 'Prumo' ? 'selected' : ''}>Prumo</option>
+                                    <option value="Outro" ${alvenariaItemValue === 'Outro' ? 'selected' : ''}>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- SUBGRUPO 2.3: ELÉTRICA / ESPECIAIS -->
+                        <div id="subgrupoEletrica_${index}" class="hidden p-5 bg-purple-50 rounded-lg border border-purple-200 mt-4">
+                            <h3 class="text-lg font-semibold text-purple-700 mb-4">ELÉTRICA / ESPECIAIS</h3>
+                            <div>
+                                <label for="eletricaLocal_${index}" class="block text-sm font-medium text-gray-700 mb-2">Local:</label>
+                                <select id="eletricaLocal_${index}" name="eletricaLocal_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Local</option>
+                                    <option value="CORREDOR" ${eletricaLocalValue === 'CORREDOR' ? 'selected' : ''}>CORREDOR</option>
+                                    <option value="TETO" ${eletricaLocalValue === 'TETO' ? 'selected' : ''}>TETO</option>
+                                </select>
+                            </div>
+                            <div class="mt-4">
+                                <label for="eletricaItem_${index}" class="block text-sm font-medium text-gray-700 mb-2">Item Avaliado:</label>
+                                <select id="eletricaItem_${index}" name="eletricaItem_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Item</option>
+                                    <option value="Ausência de Espelho" ${eletricaItemValue === 'Ausência de Espelho' ? 'selected' : ''}>Ausência de Espelho</option>
+                                    <option value="Posicionamento" ${eletricaItemValue === 'Posicionamento' ? 'selected' : ''}>Posicionamento</option>
+                                    <option value="Funcionamento" ${eletricaItemValue === 'Funcionamento' ? 'selected' : ''}>Funcionamento</option>
+                                    <option value="Alinhamento" ${eletricaItemValue === 'Alinhamento' ? 'selected' : ''}>Alinhamento</option>
+                                    <option value="Acabamento" ${eletricaItemValue === 'Acabamento' ? 'selected' : ''}>Acabamento</option>
+                                    <option value="Instalação" ${eletricaItemValue === 'Instalação' ? 'selected' : ''}>Instalação</option>
+                                    <option value="Danos" ${eletricaItemValue === 'Danos' ? 'selected' : ''}>Danos</option>
+                                    <option value="Outro" ${eletricaItemValue === 'Outro' ? 'selected' : ''}>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- SUBGRUPO 2.4: QUADROS TÉCNICOS -->
+                        <div id="subgrupoQuadros_${index}" class="hidden p-5 bg-teal-50 rounded-lg border border-teal-200 mt-4">
+                            <h3 class="text-lg font-semibold text-teal-700 mb-4">QUADROS TÉCNICOS</h3>
+                            <div>
+                                <label for="quadrosLocal_${index}" class="block text-sm font-medium text-gray-700 mb-2">Local:</label>
+                                <select id="quadrosLocal_${index}" name="quadrosLocal_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Local</option>
+                                    <option value="HIDRÔMETRO" ${quadrosLocalValue === 'HIDRÔMETRO' ? 'selected' : ''}>HIDRÔMETRO</option>
+                                    <option value="ESPECIAIS" ${quadrosLocalValue === 'ESPECIAIS' ? 'selected' : ''}>ESPECIAIS</option>
+                                    <option value="QDC" ${quadrosLocalValue === 'QDC' ? 'selected' : ''}>QDC</option>
+                                </select>
+                            </div>
+                            <div class="mt-4">
+                                <label for="quadrosItem_${index}" class="block text-sm font-medium text-gray-700 mb-2">Item Avaliado:</label>
+                                <select id="quadrosItem_${index}" name="quadrosItem_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Item</option>
+                                    <option value="Pintura Interna" ${quadrosItemValue === 'Pintura Interna' ? 'selected' : ''}>Pintura Interna</option>
+                                    <option value="Pintura porta" ${quadrosItemValue === 'Pintura porta' ? 'selected' : ''}>Pintura porta</option>
+                                    <option value="Identificações" ${quadrosItemValue === 'Identificações' ? 'selected' : ''}>Identificações</option>
+                                    <option value="Dano / defeito" ${quadrosItemValue === 'Dano / defeito' ? 'selected' : ''}>Dano / defeito</option>
+                                    <option value="Regulagem" ${quadrosItemValue === 'Regulagem' ? 'selected' : ''}>Regulagem</option>
+                                    <option value="Instalação" ${quadrosItemValue === 'Instalação' ? 'selected' : ''}>Instalação</option>
+                                    <option value="Limpeza" ${quadrosItemValue === 'Limpeza' ? 'selected' : ''}>Limpeza</option>
+                                    <option value="Drywall" ${quadrosItemValue === 'Drywall' ? 'selected' : ''}>Drywall</option>
+                                    <option value="Outro" ${quadrosItemValue === 'Outro' ? 'selected' : ''}>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- SUBGRUPO 2.5: PINTURA -->
+                        <div id="subgrupoPintura_${index}" class="hidden p-5 bg-orange-50 rounded-lg border border-orange-200 mt-4">
+                            <h3 class="text-lg font-semibold text-orange-700 mb-4">PINTURA</h3>
+                            <div>
+                                <label for="pinturaLocal_${index}" class="block text-sm font-medium text-gray-700 mb-2">Local:</label>
+                                <select id="pinturaLocal_${index}" name="pinturaLocal_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Local</option>
+                                    <option value="PAREDES" ${pinturaLocalValue === 'PAREDES' ? 'selected' : ''}>PAREDES</option>
+                                    <option value="TETO" ${pinturaLocalValue === 'TETO' ? 'selected' : ''}>TETO</option>
+                                    <option value="FORRO" ${pinturaLocalValue === 'FORRO' ? 'selected' : ''}>FORRO</option>
+                                </select>
+                            </div>
+                            <div class="mt-4">
+                                <label for="pinturaItem_${index}" class="block text-sm font-medium text-gray-700 mb-2">Item Avaliado:</label>
+                                <select id="pinturaItem_${index}" name="pinturaItem_${index}" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm rounded-md shadow-sm">
+                                    <option value="">Selecione um Item</option>
+                                    <option value="Falta de arremate" ${pinturaItemValue === 'Falta de arremate' ? 'selected' : ''}>Falta de arremate</option>
+                                    <option value="Sujeira / Mancha" ${pinturaItemValue === 'Sujeira / Mancha' ? 'selected' : ''}>Sujeira / Mancha</option>
+                                    <option value="Textura irregular" ${pinturaItemValue === 'Textura irregular' ? 'selected' : ''}>Textura irregular</option>
+                                    <option value="Recobrir massa" ${pinturaItemValue === 'Recobrir massa' ? 'selected' : ''}>Recobrir massa</option>
+                                    <option value="Recobrir tinta" ${pinturaItemValue === 'Recobrir tinta' ? 'selected' : ''}>Recobrir tinta</option>
+                                    <option value="Lixar massa" ${pinturaItemValue === 'Lixar massa' ? 'selected' : ''}>Lixar massa</option>
+                                    <option value="Furinhos" ${pinturaItemValue === 'Furinhos' ? 'selected' : ''}>Furinhos</option>
+                                    <option value="Fissura" ${pinturaItemValue === 'Fissura' ? 'selected' : ''}>Fissura</option>
+                                    <option value="Bolhas" ${pinturaItemValue === 'Bolhas' ? 'selected' : ''}>Bolhas</option>
+                                    <option value="Outro" ${pinturaItemValue === 'Outro' ? 'selected' : ''}>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- SUBGRUPO 2.6: ESQUADRIAS (Múltipla seleção) -->
+                        <div id="subgrupoEsquadrias_${index}" class="hidden p-5 bg-indigo-50 rounded-lg border border-indigo-200 mt-4">
+                            <h3 class="text-lg font-semibold text-indigo-700 mb-4">ESQUADRIAS</h3>
+                            <div class="mt-4">
+                                <label for="esquadriasItem_${index}" class="block text-sm font-medium text-gray-700 mb-2">Item Avaliado:</label>
+                                <!-- O atributo 'multiple' permite a seleção de múltiplos itens -->
+                                <select id="esquadriasItem_${index}" name="esquadriasItem_${index}" multiple class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm h-32">
+                                    <option value="Calafate alizares" ${esquadriasItemValues.includes('Calafate alizares') ? 'selected' : ''}>Calafate alizares</option>
+                                    <option value="Regulagem" ${esquadriasItemValues.includes('Regulagem') ? 'selected' : ''}>Regulagem</option>
+                                    <option value="Instalação" ${esquadriasItemValues.includes('Instalação') ? 'selected' : ''}>Instalação</option>
+                                    <option value="Ausência" ${esquadriasItemValues.includes('Ausência') ? 'selected' : ''}>Ausência</option>
+                                    <option value="Danos" ${esquadriasItemValues.includes('Danos') ? 'selected' : ''}>Danos</option>
+                                    <option value="Outro" ${esquadriasItemValues.includes('Outro') ? 'selected' : ''}>Outro</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Mantenha 'Ctrl' (Windows) ou 'Cmd' (Mac) pressionado para selecionar múltiplos itens.</p>
+                            </div>
+                        </div>
+                        <!-- Campo de Observação para esta NC específica -->
+                        <div class="p-5 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                            <label for="observacaoNC_${index}" class="block text-sm font-medium text-gray-700 mb-2">Observação para esta NC:</label>
+                            <textarea id="observacaoNC_${index}" name="observacaoNC_${index}" rows="2" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-500 focus:border-gray-500 sm:text-sm" placeholder="Detalhes desta não conformidade...">${observacaoNCValue}</textarea>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Adiciona uma nova seção de não conformidade ao formulário.
+         * @param {boolean} isInitial - Verdadeiro se for a primeira seção (não removível).
+         * @param {Object} [data={}] - Dados para pré-preencher a seção (para carregamento do LocalStorage).
+         */
+        function addNonConformitySection(isInitial = false, data = {}) {
+            ncCounter++;
+            const newSectionHtml = generateNcSectionHtml(ncCounter, !isInitial, data);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newSectionHtml.trim();
+            const newSection = tempDiv.firstChild;
+            nonConformitySectionsContainer.appendChild(newSection);
+
+            // Adiciona listener para a categoria da nova seção
+            const categoriaSelect = newSection.querySelector(`#categoria_${ncCounter}`);
+            if (categoriaSelect) {
+                categoriaSelect.addEventListener('change', () => toggleSubgrupos(newSection, ncCounter));
+            } else {
+                console.error(`addNonConformitySection: Elemento #categoria_${ncCounter} NÃO encontrado na nova seção.`, newSection);
+            }
+
+            // Adiciona listener para o botão de remover, se existir
+            if (!isInitial) {
+                const removeBtn = newSection.querySelector('.remove-nc-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => {
+                        newSection.remove();
+                        saveFormData(); // Salva os dados após remover uma seção
+                    });
+                }
+            }
+
+            // Adiciona listener para o cabeçalho colapsável
+            const collapsibleHeader = newSection.querySelector('.collapsible-header');
+            const collapsibleContent = newSection.querySelector('.collapsible-content');
+            if (collapsibleHeader && collapsibleContent) {
+                collapsibleHeader.addEventListener('click', () => {
+                    collapsibleContent.classList.toggle('expanded');
+                });
+            }
+
+            // Garante que os subgrupos estejam ocultos inicialmente e preenche os valores
+            toggleSubgrupos(newSection, ncCounter);
+
+            // Rolagem automática para a nova seção
+            if (!isInitial) {
+                newSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        /**
+         * Função para mostrar ou ocultar os subgrupos com base na categoria selecionada
+         * para uma seção de não conformidade específica.
+         * @param {HTMLElement} sectionElement - O elemento div da seção de não conformidade.
+         * @param {number} suffix - O sufixo de ID da seção.
+         */
+        function toggleSubgrupos(sectionElement, suffix) {
+            if (!sectionElement) {
+                console.error('toggleSubgrupos: sectionElement é nulo ou indefinido. Abortando.');
+                return;
+            }
+
+            const categoriaSelect = sectionElement.querySelector(`#categoria_${suffix}`);
+            
+            if (!categoriaSelect) {
+                console.error(`toggleSubgrupos: Elemento <select> com ID #categoria_${suffix} NÃO encontrado dentro de sectionElement. Abortando.`, sectionElement);
+                return; 
+            }
+
+            let selectedCategory = '';
+            try {
+                selectedCategory = categoriaSelect.value;
+            } catch (e) {
+                console.error('toggleSubgrupos: Erro INESPERADO ao acessar categoriaSelect.value:', e, 'para categoriaSelect:', categoriaSelect);
+                return; // Previne execução adicional se houver falha
+            }
+            
+            const subgrupos = {
+                'Revestimentos': sectionElement.querySelector(`#subgrupoRevestimentos_${suffix}`),
+                'Alvenaria': sectionElement.querySelector(`#subgrupoAlvenaria_${suffix}`),
+                'Elétrica / Especiais': sectionElement.querySelector(`#subgrupoEletrica_${suffix}`),
+                'Quadros Técnicos': sectionElement.querySelector(`#subgrupoQuadros_${suffix}`),
+                'Pintura': sectionElement.querySelector(`#subgrupoPintura_${suffix}`),
+                'Esquadrias': sectionElement.querySelector(`#subgrupoEsquadrias_${suffix}`)
+            };
+
+            // Oculta todos os subgrupos primeiro
+            for (const key in subgrupos) {
+                if (subgrupos.hasOwnProperty(key) && subgrupos[key]) {
+                    subgrupos[key].classList.add('hidden');
+                }
+            }
+
+            // Mostra o subgrupo correspondente à categoria selecionada
+            if (subgrupos[selectedCategory]) {
+                subgrupos[selectedCategory].classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Coleta todos os dados do formulário, incluindo todas as seções de não conformidade.
+         * @returns {Object} Um objeto contendo os dados do local e um array de objetos de não conformidade.
+         */
+        function collectAllFormData() {
+            const bloco = document.getElementById('bloco').value;
+            const pavimento = document.getElementById('pavimento').value;
+            const observacaoGeral = observacaoGeralInput.value;
+            // Assinatura digital removida, então não coletamos mais signatureData
+
+            const nonConformities = [];
+            document.querySelectorAll('.non-conformity-section').forEach(section => {
+                const suffix = section.dataset.idSuffix;
+                const categoria = section.querySelector(`#categoria_${suffix}`).value;
+                
+                let local = '';
+                let itemAvaliado = '';
+                let observacaoNC = section.querySelector(`#observacaoNC_${suffix}`).value;
+
+                // Coleta dados específicos do subgrupo selecionado
+                if (categoria === 'Revestimentos') {
+                    local = section.querySelector(`#revestimentosLocal_${suffix}`).value;
+                    itemAvaliado = section.querySelector(`#revestimentosItem_${suffix}`).value;
+                } else if (categoria === 'Alvenaria') {
+                    local = section.querySelector(`#alvenariaLocal_${suffix}`).value;
+                    itemAvaliado = section.querySelector(`#alvenariaItem_${suffix}`).value;
+                } else if (categoria === 'Elétrica / Especiais') {
+                    local = section.querySelector(`#eletricaLocal_${suffix}`).value;
+                    itemAvaliado = section.querySelector(`#eletricaItem_${suffix}`).value;
+                } else if (categoria === 'Quadros Técnicos') {
+                    local = section.querySelector(`#quadrosLocal_${suffix}`).value;
+                    itemAvaliado = section.querySelector(`#quadrosItem_${suffix}`).value;
+                } else if (categoria === 'Pintura') {
+                    local = section.querySelector(`#pinturaLocal_${suffix}`).value;
+                    itemAvaliado = section.querySelector(`#pinturaItem_${suffix}`).value;
+                } else if (categoria === 'Esquadrias') {
+                    // Para seleção múltipla, coleta todos os valores selecionados
+                    const selectedItems = Array.from(section.querySelector(`#esquadriasItem_${suffix}`).selectedOptions).map(option => option.value);
+                    itemAvaliado = selectedItems.join('; '); // Junta múltiplos valores com ;
+                    // Esquadrias não tem campo 'Local' na estrutura fornecida, então 'local' permanece vazio
+                }
+
+                nonConformities.push({
+                    categoria: categoria,
+                    local: local,
+                    itemAvaliado: itemAvaliado,
+                    observacaoNC: observacaoNC
+                });
+            });
+
+            return {
+                bloco: bloco,
+                pavimento: pavimento,
+                observacaoGeral: observacaoGeral,
+                nonConformities: nonConformities
+                // signatureData removido
+            };
+        }
+
+        /**
+         * Salva os dados do formulário no LocalStorage.
+         */
+        function saveFormData() {
+            const data = collectAllFormData();
+            localStorage.setItem('inspectionFormData', JSON.stringify(data));
+            console.log('Dados do formulário salvos no LocalStorage.');
+        }
+
+        /**
+         * Carrega os dados do LocalStorage e preenche o formulário.
+         */
+        function loadFormData() {
+            const savedData = localStorage.getItem('inspectionFormData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                
+                // Preenche os campos do Grupo 1
+                document.getElementById('bloco').value = data.bloco || '';
+                document.getElementById('pavimento').value = data.pavimento || '';
+                observacaoGeralInput.value = data.observacaoGeral || '';
+                // signatureDataInput.value removido
+
+                // Limpa as seções de NC existentes antes de carregar
+                nonConformitySectionsContainer.innerHTML = '';
+                ncCounter = 0; // Reseta o contador
+
+                // Adiciona as seções de NC salvas
+                if (data.nonConformities && data.nonConformities.length > 0) {
+                    data.nonConformities.forEach(nc => {
+                        addNonConformitySection(false, nc); // isInitial = false para que sejam removíveis
+                    });
+                } else {
+                    addNonConformitySection(true); // Adiciona a primeira seção se não houver dados salvos
+                }
+
+                // Restaura a assinatura no canvas (REMOVIDO)
+                console.log('Dados do formulário carregados do LocalStorage.');
+            } else {
+                // Se não houver dados salvos, adiciona a primeira seção de NC
+                addNonConformitySection(true);
+                console.log('Nenhum dado salvo no LocalStorage. Iniciando formulário vazio.');
+            }
+        }
+
+        /**
+         * Limpa os dados salvos no LocalStorage e reinicia o formulário.
+         */
+        function clearLocalData() {
+            localStorage.removeItem('inspectionFormData');
+            showMessage('Dados salvos localmente foram removidos. O formulário será reiniciado.');
+            setTimeout(() => {
+                location.reload(); // Recarrega a página para um formulário limpo
+            }, 1500);
+        }
+
+        // --- Funções de Exportação ---
+
+        /**
+         * Converte os dados coletados em uma string de texto (CSV-like).
+         * Cada não conformidade gera uma nova linha no texto.
+         * @param {Object} data - O objeto contendo todos os dados do formulário.
+         * @returns {string} A string formatada em texto.
+         */
+        function convertToText(data) { 
+            const headers = [
+                "BLOCO", "PAVIMENTO", "CATEGORIA", "LOCAL_NC", "ITEM_AVALIADO_NC", "OBSERVACAO_NC", "OBSERVACAO_GERAL"
+            ];
+
+            const escapeTextValue = (value) => { 
+                if (value === null || value === undefined) {
+                    return '';
+                }
+                let stringValue = String(value);
+                // Escapa vírgulas, aspas duplas e quebras de linha para manter a integridade da célula
+                if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                return stringValue;
+            };
+
+            // Não adiciona BOM para arquivo de texto genérico
+            let textContent = headers.map(escapeTextValue).join(',') + '\n';
+
+            // Prepara a observação geral para ser repetida em cada linha de NC
+            const generalInfo = [
+                escapeTextValue(data.bloco || ''),
+                escapeTextValue(data.pavimento || ''),
+                '', // Categoria NC (vazio para linha geral)
+                '', // Local NC (vazio para linha geral)
+                '', // Item Avaliado NC (vazio para linha geral)
+                '', // Observacao NC (vazio para linha geral)
+                escapeTextValue(data.observacaoGeral || '')
+            ];
+
+            // Se não houver não conformidades, ainda exporta a linha principal com observação geral
+            if (data.nonConformities.length === 0) {
+                textContent += generalInfo.join(',');
+            } else {
+                data.nonConformities.forEach(nc => {
+                    const row = [
+                        escapeTextValue(data.bloco || ''),
+                        escapeTextValue(data.pavimento || ''),
+                        escapeTextValue(nc.categoria || ''),
+                        escapeTextValue(nc.local || ''),
+                        escapeTextValue(nc.itemAvaliado || ''),
+                        escapeTextValue(nc.observacaoNC || ''),
+                        escapeTextValue(data.observacaoGeral || '') // Observação geral repetida para cada linha de NC
+                    ];
+                    textContent += row.join(',') + '\n';
+                });
+            }
+
+            return textContent;
+        }
+
+        /**
+         * Inicia o download do arquivo de texto.
+         * @param {string} filename - O nome do arquivo de texto.
+         * @param {string} textString - A string de texto a ser salva.
+         */
+        function downloadTextFile(filename, textString) { 
+            const blob = new Blob([textString], { type: 'text/plain;charset=utf-8;' }); 
+            const link = document.createElement('a');
+            if (link.download !== undefined) { 
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                // Fallback para navegadores que não suportam o atributo download
+                showMessage('Seu navegador não suporta download automático. Por favor, copie o texto abaixo e salve como .txt:', textString); 
+            }
+        }
+
+        /**
+         * Gera um PDF do conteúdo do formulário.
+         */
+        async function generatePdf() {
+            showMessage('Gerando PDF... Por favor, aguarde.');
+
+            const formContent = document.getElementById('formContent'); 
+            const originalMarginTop = formContent.style.marginTop;
+            const originalMarginBottom = formContent.style.marginBottom;
+
+            // Temporariamente remove as margens para PDF
+            formContent.style.marginTop = '0';
+            formContent.style.marginBottom = '0';
+
+            // 1. Expandir todas as seções colapsáveis antes de gerar o PDF
+            const collapsibleContents = document.querySelectorAll('.collapsible-content');
+            const originalStates = []; // Para armazenar o estado original e restaurar depois
+
+            collapsibleContents.forEach(content => {
+                originalStates.push(content.classList.contains('expanded'));
+                if (!content.classList.contains('expanded')) {
+                    content.classList.add('expanded');
+                }
+            });
+
+            // Pequeno atraso para garantir que o DOM seja renderizado após a expansão
+            await new Promise(resolve => setTimeout(resolve, 100)); 
+            
+            // Opções de configuração para o PDF
+            const options = {
+                margin: 10, // Margem em mm para o documento PDF
+                filename: `vistoria_corredores_${new Date().toISOString().slice(0, 19).replace(/[:T.]/g, '-')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, // Aumenta a resolução da imagem para melhor qualidade
+                    logging: true, 
+                    dpi: 192, 
+                    letterRendering: true,
+                    useCORS: true // Importante se houver imagens externas
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait',
+                    putOnlyUsedFonts: true, // Otimiza o tamanho do PDF
+                    floatPrecision: 16 // Aumenta a precisão para evitar problemas de layout
+                },
+                pagebreak: { 
+                    mode: ['avoid-all', 'css', 'legacy'] // Tenta evitar quebras no meio de elementos
+                }
+            };
+
+            try {
+                await html2pdf().set(options).from(formContent).save();
+                showMessage('PDF gerado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao gerar PDF:', error);
+                showMessage('Erro ao gerar PDF. Verifique o console para mais detalhes.');
+            } finally {
+                // 2. Restaurar o estado original das seções colapsáveis
+                collapsibleContents.forEach((content, index) => {
+                    if (!originalStates[index]) { // Se não estava expandido originalmente
+                        content.classList.remove('expanded');
+                    }
+                });
+                // Restaurar as margens originais do formulário
+                formContent.style.marginTop = originalMarginTop;
+                formContent.style.marginBottom = originalMarginBottom;
+            }
+        }
+
+        // --- Listeners de Eventos ---
+
+        // Adiciona a primeira seção de NC ao carregar a página ou carrega do LocalStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFormData();
+        });
+
+        // Listener para o botão "Adicionar Nova Não Conformidade"
+        addNcSectionBtn.addEventListener('click', () => addNonConformitySection());
+
+        // Listener para o botão de exportar TXT
+        exportTextBtn.addEventListener('click', function() {
+            const data = collectAllFormData();
+            const textString = convertToText(data); 
+            const now = new Date();
+            const filename = `vistoria_corredores_${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}.txt`; 
+            downloadTextFile(filename, textString); 
+        });
+
+        // Listener para o botão de gerar PDF
+        exportPdfBtn.addEventListener('click', generatePdf);
+
+        // Listener para o botão de limpar dados salvos
+        clearLocalDataBtn.addEventListener('click', clearLocalData);
+
+        // Salva os dados no LocalStorage a cada mudança no formulário
+        inspectionForm.addEventListener('change', saveFormData);
+        inspectionForm.addEventListener('input', saveFormData); // Para campos de texto
+    </script>
+</body>
+</html>
